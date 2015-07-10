@@ -1,0 +1,11 @@
+model{
+	for(i in 1:N){
+		z[i] ~ dbeta(1,1)
+		y[i] ~ dnorm(mu[i],tau)
+		mu[i] <- exp(x[i,1]*beta[1] + x[i,2]*beta[2] + x[i,3]*beta[3] + x[i,4]*beta[4]) + len[i]*(z[i]-.5)
+	}
+	for(i in 1:4){
+		beta[i] ~ dnorm(0,.1)
+	}
+	tau ~ dgamma(0.01,0.01)
+}

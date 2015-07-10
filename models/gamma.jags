@@ -1,0 +1,11 @@
+model{
+	for(i in 1:N){
+		y[i] ~ dgamma(alpha, beta)
+	}
+	alpha <- exp(log.alpha)
+	beta <- exp(log.beta)
+	log.alpha ~ dunif(-10,10)
+	log.beta ~ dunif(-10,10)
+}
+
+
