@@ -43,12 +43,12 @@ lab_fun = function(variable, value){
 # reversing log ticks appears hard:
 # https://groups.google.com/forum/#!topic/ggplot2/OlGA8Gm9O7w
 # instead, change to lightish gray
-dev.new(width=12, height=12)
+dev.new(width=12.2, height=12)
 print(ggplot(df, aes(x=value)) +
 	geom_histogram(aes(y = ..density..), fill="#888888", binwidth=.1, position="identity") +
 	facet_grid(Species ~ Component, scales="free_x", space="free_x", labeller=lab_fun) +
 	theme_bw() +
-	coord_cartesian(ylim=c(0, 6)) +
+	coord_cartesian(ylim=c(0, 6), expand=FALSE) +
 	ylab("Probability") +
 	scale_y_continuous(breaks=c(0,3,6)) +
 	theme(strip.text.y = element_text(size = 10, face = "italic", angle = 0),
