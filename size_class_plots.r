@@ -27,6 +27,8 @@ require(RColorBrewer)
 require(plyr)
 require(scales)
 require(Hmisc)
+require(foreach)
+require(doSNOW)
 
 #########################################################
 ######################################################### 2. load and process data
@@ -58,10 +60,15 @@ feed_split = split(data$feed, cut(data$feed$PredSize, quantile(data$feed$PredSiz
 methods_files = c("bayes.r", "nonpara_bs.r", "para_bs.r")
 sapply(paste0("scripts/", methods_files), source)
 
-results_list = sapply(feed_split, function(feed_subset){
-       data$feed = feed_subset
+registerDoSNOW(makeCluster(8, type = "SOCK"))
+getDoParWorkers()
+
+pack_list = c("MASS","MCMCpack","mvnmle","mvtnorm","numDeriv","Matrix","mcmc","coda","rjags")
+results_list = foreach(i = 1:length(feed_split), .combine=c, .packages=pack_list) %dopar% {
+       data$feed = feed_split[[i]]
        results = bayesian_method(data) # apply Bayesian method to each subset separately
-})
+}
+
 names(results_list) = sapply(feed_split,function(x) median(x$PredSize)) # median pred sizes in each group
 
 saveRDS(results_list, "output/results_list_8classes.RDS") # save results for future use (optional)
@@ -74,30 +81,25 @@ saveRDS(results_list, "output/results_list_8classes.RDS") # save results for fut
 data = do.call("rbind",sapply(names(results_list),function(x) data.frame(Size=x,results_list[[x]][,c("Chamaesipho columna","Xenostrobus pulex")]), simplify=FALSE))
 data = melt(data,id.vars="Size")
 data$value = log(data$value,base=10)
-
-# haven't had much success w/ geom_violin using cont. x and grouping var.  So, just use discrete and add a "blank" group
-data2 = rbind(cbind(data,alpha=1),
-	data.frame(Size=10,variable="Chamaesipho.columna",value=-5.5,alpha=0))
-
-data2$Size = factor(as.numeric(data2$Size),
-	levels=sort(unique(as.numeric(data2$Size))))
-
-data2$variable = gsub("\\.", " ", data2$variable)
+data$variable = gsub("\\.", " ", data$variable)
+data$Mass = 1.214*10^-4 * as.numeric(as.character(data$Size))^3.210
 
 dev.new(width=7,height=6)
-ggplot(data2, aes(x=Size,y=value)) +
+ggplot(data, aes(x=Mass,y=value,group=Mass)) +
 	geom_violin(fill="gray") +
 	facet_wrap(~ variable, scales="free_y") +
 	theme_bw()  +
-	stat_summary(aes(group=Size,alpha=alpha), fun.y=median, geom="point") +
+	stat_summary(aes(group=Mass), fun.y=median, geom="point") +
 	scale_alpha(range=c(0,1), guide=FALSE) +
-	xlab("Median predator size (mm)") +
+	xlab("Median predator mass (g)") +
 	theme(strip.text = element_text(size = 10, face = "italic", angle = 0)) +
 	scale_y_continuous(labels=trans_format("I", math_format(10^.x))) +
+	scale_x_log10(breaks=c(.1,.5,1)) +
+	expand_limits(x=.1) +
+	annotation_logticks(sides="b") +
 	ylab(bquote("Attack Rate (" ~ xi[i] ~ ")"))
+
 savePlot(filename = "output/size_class.pdf", type = "pdf")
 savePlot(filename = "output/size_class.png", type = "png")
 dev.off()
-
-cat("\r") # follow w/ blank line to reset cursor
 

@@ -29,11 +29,13 @@ print(ggplot(df, aes(x=x,y=value,linetype=c,color=c)) +
 	color=guide_legend(title="Sparsity (c)")) +
 	geom_line(size=1) +
 	theme_bw() +
-	coord_cartesian(xlim=c(0,50),ylim=c(-.25,.25)) +
+	coord_cartesian(xlim=c(1,50),ylim=c(-.25,.25)) +
 	xlab("Predators Feeding") +
 	ylab(expression(paste(	"log"[10], bgroup("(",frac(hat(theta)[Bayes],"X"[i]/"X"[0]),")")))) +
 	theme(legend.position = c(1, 1), legend.justification = c(1, 1),
-		axis.title.y = element_text(size = 10, face = "italic", angle = 0)))
+		axis.title.y = element_text(size = 10, face = "italic", angle = 0)) +
+	scale_x_log10(breaks=c(1,5,10,50)) +
+	annotation_logticks(sides="b"))
 savePlot("output/med_c.pdf", "pdf")
 dev.off()
 
