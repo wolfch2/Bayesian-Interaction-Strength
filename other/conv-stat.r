@@ -1,11 +1,8 @@
-# Start here to run our primary analysis.  Additional analysis scripts to partition
-# by predator size and diagnose MCMC converse are in the "other" folder
-
 #########################################################
 ######################################################### 1. setup (user may have to modify this seciton)
 #########################################################
 
-setwd("C:/Users/Chris/Dropbox/stat phd/project_code") # contains folders: "scripts", "data", "models", and "output"
+setwd("/home/stats/wolfch/project_code") # contains folders: "scripts", "data", "models", and "output"
 nsamples = 1000 # number of posterior (and bootstrap) samples to obtain
 
 # use install.packages(...) if any of these packages are not already installed
@@ -18,6 +15,7 @@ require(Matrix)
 require(mcmc)
 require(rjags) # call jags from R
 require(coda) # analyze output in R
+require(scales)
 require(ggplot2)
 require(reshape2)
 require(grid)
@@ -26,7 +24,11 @@ require(lattice)
 require(colorspace)
 require(RColorBrewer)
 require(plyr)
-require(scales)
+require(foreach)
+require(doSNOW)
+
+cl = makeCluster(25, type = "SOCK", outfile="/home/stats/wolfch/project_code/worker_log.txt")
+registerDoSNOW(cl)
 
 #########################################################
 ######################################################### 2. load and process data
@@ -51,26 +53,13 @@ data = process_data(raw_data)
 ######################################################### 3. estimate attack rates!
 #########################################################
 
-# load attack rate estimation procedures
-methods_files = c("bayes.r", "nonpara_bs.r", "para_bs.r")
-sapply(paste0("scripts/", methods_files), source)
+# load attack rate estimation procedure
+source("scripts/bayes.r")
 
 # estimate attack rates with bootstrap and Bayesian methods
-results = c(list("Nonpara BS" = nonpara_bs(data), "Para BS" = para_bs(data)),
-	bayesian_method(data, c=c(0,1/3,1)))
+results = bayesian_method(data, c=1/3)
 
-saveRDS(results, "output/results.RDS") # save results for future use (optional)
+# saveRDS(results, "output/results.RDS") # save results for future use (optional)
 # results = readRDS("output/results.RDS")
 
-#########################################################
-######################################################### 4. figures and graphs
-#########################################################
-
-source("scripts/indep_plot.r") # assess relationships between covariates and feeding props.
-source("scripts/mle_comp.r") # plots comparing Dirichlet-multinomial post. median to MLE
-
-source("scripts/side_plot.r") # plot comparing point and interval estimates across methods
-source("scripts/comp_hists.r") # for Bayes(1/3) method, separate out estimator components
-
-cat("\r") # follow w/ blank line to reset cursor
-
+stopCluster(cl)
